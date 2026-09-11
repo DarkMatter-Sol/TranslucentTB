@@ -35,7 +35,7 @@ jobs:
           /p:Platform=x64
           /p:BuildType=Dev
 
-      # Fixed: Gathers the binary layers and flattens them into one target release directory
+      # Fixed: Stages the binary layers AND recursively aggregates all modern UI engine components
       - name: Stage Portable Package
         shell: pwsh
         run: |
@@ -44,8 +44,12 @@ jobs:
           Copy-Item -Path "ExplorerHooks\x64\Release\ExplorerHooks.dll" -Destination .\Staging\
           Copy-Item -Path "ProgramLog\x64\Release\ProgramLog.dll" -Destination .\Staging\
           Copy-Item -Path "ExplorerTAP\x64\Release\ExplorerTAP.dll" -Destination .\Staging\
+          
+          # Force copy user interface frameworks matching modern Xaml runtimes from build cache
+          Get-ChildItem -Path "packages\" -Filter "*.dll" -Recursive | Where-Object { $_.FullName -like "*x64*" } | ForEach-Object {
+              Copy-Item -Path $_.FullName -Destination .\Staging\ -Force
+          }
 
-      # Fixed: Uploads the clean folder so it is plug-and-play as soon as you unzip it
       - uses: actions/upload-artifact@v4
         with:
           name: TranslucentTB-Portable-x64
