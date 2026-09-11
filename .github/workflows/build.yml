@@ -2,6 +2,8 @@ name: Build TranslucentTB
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ master, main ]
 
 jobs:
   build:
@@ -16,13 +18,18 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build
-        run: msbuild TranslucentTB.sln /p:Configuration=Release /p:Platform=x64 /m
+      - name: Integrate Vcpkg
+        run: |
+          vcpkg integrate install
+
+      - name: Build TranslucentTB
+        run: |
+          msbuild TranslucentTB/TranslucentTB.vcxproj /p:Configuration=Release /p:Platform=x64 /m
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TranslucentTB
+          name: TranslucentTB-Artifacts
           path: |
-            **/x64/Release/*.exe
+            **/x64/Release/TranslucentTB.exe
             **/x64/Release/*.dll
