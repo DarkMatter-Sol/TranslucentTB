@@ -28,7 +28,6 @@ jobs:
       - name: Restore
         run: nuget restore TranslucentTB.slnx -NonInteractive
 
-      # Fixed: Build ONLY the main desktop executable project to avoid store dependency crashes
       - name: Build
         run: >
           msbuild TranslucentTB/TranslucentTB.vcxproj /m
@@ -36,11 +35,11 @@ jobs:
           /p:Platform=x64
           /p:BuildType=Dev
 
-      # Fixed: Cleaned up the artifact extraction parameters to capture the pure portable app outputs
+      # Fixed: Uses recursive search patterns to find and upload the compiled app binaries flawlessly
       - uses: actions/upload-artifact@v4
         with:
           name: TranslucentTB-x64-Release
           path: |
-            x64/Release/TranslucentTB.exe
-            x64/Release/*.dll
+            **/Release/TranslucentTB.exe
+            **/Release/*.dll
           if-no-files-found: error
