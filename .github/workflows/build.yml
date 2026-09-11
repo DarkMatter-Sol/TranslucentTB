@@ -3,42 +3,44 @@ name: Build TranslucentTB
 on:
   workflow_dispatch:
   push:
-    branches: [ master, main ]
+    branches: [release, develop]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Initialize Git Submodules
-        run: |
-          git submodule init
-          git submodule update --init --recursive
+      - uses: microsoft/setup-msbuild@v2
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      # Fixed: Use dotnet restore to deeply crawl and fetch all sub-project NuGet packages
-      - name: Restore Project Dependencies
-        run: |
-          dotnet restore TranslucentTB.slnx
-
-      - name: Integrate Vcpkg Packages
-        run: |
-          vcpkg integrate install
-
-      - name: Build Executable Project
-        run: |
-          msbuild TranslucentTB/TranslucentTB.vcxproj /p:Configuration=Release /p:Platform=x64 /m
-
-      - name: Upload Finished Binaries
-        uses: actions/upload-artifact@v4
+      - uses: NuGet/setup-nuget@v2
         with:
-          name: TranslucentTB-Output
+          nuget-version: "7.0.1"
+
+      - name: Integrate vcpkg
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
+      - name: Restore
+        run: nuget restore TranslucentTB.slnx -NonInteractive
+
+      - name: Build
+        run: >
+          msbuild TranslucentTB.slnx /m
+          /p:Configuration=Release
+          /p:Platform=x64
+          /p:BuildType=Dev
+          /p:AppxPackageSigningEnabled=false
+          /p:AppxBundle=Never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TranslucentTB-x64-Release
           path: |
-            **/x64/Release/TranslucentTB.exe
-            **/x64/Release/*.dll
+            x64/Release/**
+            AppPackage/AppPackages/**
+          if-no-files-found: warn
