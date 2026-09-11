@@ -14,7 +14,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Force deep manual extraction of missing submodule structures
       - name: Initialize Git Submodules
         run: |
           git submodule init
@@ -23,11 +22,20 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      # Fixed: Setup NuGet CLI tool inside the runner
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      # Fixed: Explicitly restore missing NuGet packages for all sub-projects
+      - name: Restore NuGet Packages
+        run: |
+          nuget restore TranslucentTB.sln
+
       - name: Integrate Vcpkg Packages
         run: |
           vcpkg integrate install
 
-      # Explicitly builds the underlying app workspace engine directly
+      # Now it can build safely without throwing missing reference errors
       - name: Build Executable Project
         run: |
           msbuild TranslucentTB/TranslucentTB.vcxproj /p:Configuration=Release /p:Platform=x64 /m
