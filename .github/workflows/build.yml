@@ -22,10 +22,10 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      # Fixed: Use MSBuild's native restore tool targeted directly at the core app config file
-      - name: Restore NuGet Packages
+      # Fixed: Use dotnet restore to deeply crawl and fetch all sub-project NuGet packages
+      - name: Restore Project Dependencies
         run: |
-          msbuild TranslucentTB/TranslucentTB.vcxproj /t:Restore
+          dotnet restore TranslucentTB.slnx
 
       - name: Integrate Vcpkg Packages
         run: |
