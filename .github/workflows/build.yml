@@ -35,7 +35,7 @@ jobs:
         run: >
           msbuild TranslucentTB.slnx
           /m
-          /t:Xaml;ProgramLog;ExplorerHooks;ExplorerTAP;TranslucentTB
+          "/t:Xaml;ProgramLog;ExplorerHooks;ExplorerTAP;TranslucentTB"
           /p:Configuration=Release
           /p:Platform=x64
           /p:BuildType=Dev
