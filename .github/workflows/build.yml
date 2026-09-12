@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +35,7 @@ jobs:
         run: >
           msbuild TranslucentTB.slnx
           /m
+          /t:Xaml;ProgramLog;ExplorerHooks;ExplorerTAP;TranslucentTB
           /p:Configuration=Release
           /p:Platform=x64
           /p:BuildType=Dev
@@ -42,11 +43,17 @@ jobs:
       - name: Stage Portable Package
         shell: pwsh
         run: |
-          $src = "AppPackage\bin\x64\Release"
-          if (-not (Test-Path $src)) { throw "AppPackage output missing: $src" }
+          $out = "x64\Release"
           New-Item -ItemType Directory -Force -Path .\Staging | Out-Null
-          Copy-Item "$src\*" .\Staging\ -Recurse -Include *.exe,*.dll,resources.pri,Assets
-          Get-ChildItem .\Staging -Recurse | Select-Object FullName
+          Copy-Item "$out\TranslucentTB.exe" .\Staging\
+          Copy-Item "$out\ExplorerHooks.dll" .\Staging\
+          Copy-Item "$out\ExplorerTAP.dll" .\Staging\
+          Copy-Item "$out\ProgramLog.dll" .\Staging\
+          Copy-Item "$out\Xaml\Xaml.dll" .\Staging\
+          if (Test-Path "$out\Xaml\TranslucentTB.Xaml.pri") {
+            Copy-Item "$out\Xaml\TranslucentTB.Xaml.pri" .\Staging\
+          }
+          Get-ChildItem .\Staging | Select-Object Name
 
       - uses: actions/upload-artifact@v4
         with:
