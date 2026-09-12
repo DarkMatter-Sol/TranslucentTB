@@ -1,9 +1,12 @@
 name: Build TranslucentTB
 
-"on":
+on:
   workflow_dispatch:
   push:
     branches: [release, develop]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -17,68 +20,33 @@ jobs:
 
       - uses: NuGet/setup-nuget@v2
         with:
-          nuget-version: "6.x"
+          nuget-version: "7.0.1"
 
-      - name: Set vcpkg environment
+      - name: Integrate vcpkg
         shell: pwsh
         run: |
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" integrate install
           echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
 
-      - name: Restore NuGet packages
+      - name: Restore
         run: nuget restore TranslucentTB.slnx -NonInteractive
 
       - name: Build
         run: >
-          msbuild TranslucentTB\TranslucentTB.vcxproj /m
+          msbuild TranslucentTB.slnx
+          /m
           /p:Configuration=Release
           /p:Platform=x64
           /p:BuildType=Dev
 
-      - name: List build outputs
-        shell: pwsh
-        run: |
-          Get-ChildItem -Recurse -Include *.exe,*.dll -Path TranslucentTB, ExplorerHooks, ProgramLog, ExplorerTAP |
-            Select-Object FullName
-
       - name: Stage Portable Package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path .\Staging
-
-          $targets = @(
-            "TranslucentTB\x64\Release\TranslucentTB.exe",
-            "ExplorerHooks\x64\Release\ExplorerHooks.dll",
-            "ProgramLog\x64\Release\ProgramLog.dll",
-            "ExplorerTAP\x64\Release\ExplorerTAP.dll"
-          )
-          foreach ($t in $targets) {
-            if (-not (Test-Path $t)) { Write-Error "Missing build output: $t" }
-            Copy-Item $t -Destination .\Staging\
-          }
-
-          $runtimeDlls = @(
-            "Microsoft.UI.Xaml.dll",
-            "Microsoft.UI.Xaml.Controls.dll",
-            "Microsoft.UI.Xaml.Controls.pri",
-            "Microsoft.Windows.AppLifecycle.dll",
-            "Microsoft.Windows.AppNotifications.dll",
-            "Microsoft.Internal.FrameworkUdk.dll"
-          )
-
-          $candidates = Get-ChildItem -Path "packages" -Recurse -Include *.dll,*.pri |
-            Where-Object { $runtimeDlls -contains $_.Name }
-
-          if (-not $candidates) {
-            Write-Warning "No XAML runtime DLLs found in packages/ - check package restore"
-          }
-
-          $candidates | ForEach-Object {
-            Write-Host "Staging runtime: $($_.FullName)"
-            Copy-Item $_.FullName -Destination .\Staging\ -Force
-          }
-
-          Write-Host "`n=== Final staging contents ==="
-          Get-ChildItem .\Staging | Select-Object Name, Length
+          $src = "AppPackage\bin\x64\Release"
+          if (-not (Test-Path $src)) { throw "AppPackage output missing: $src" }
+          New-Item -ItemType Directory -Force -Path .\Staging | Out-Null
+          Copy-Item "$src\*" .\Staging\ -Recurse -Include *.exe,*.dll,resources.pri,Assets
+          Get-ChildItem .\Staging -Recurse | Select-Object FullName
 
       - uses: actions/upload-artifact@v4
         with:
