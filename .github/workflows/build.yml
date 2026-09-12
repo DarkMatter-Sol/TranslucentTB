@@ -46,7 +46,7 @@ jobs:
           Copy-Item -Path "ExplorerTAP\x64\Release\ExplorerTAP.dll" -Destination .\Staging\
           
           # Force copy user interface frameworks matching modern Xaml runtimes from build cache
-          Get-ChildItem -Path "packages\" -Filter "*.dll" -Recursive | Where-Object { $_.FullName -like "*x64*" } | ForEach-Object {
+          Get-ChildItem -Path "packages\" -Filter "*.dll" -Recurse | Where-Object { $_.FullName -like "*x64*" } | ForEach-Object {
               Copy-Item -Path $_.FullName -Destination .\Staging\ -Force
           }
 
